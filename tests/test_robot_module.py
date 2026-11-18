@@ -82,11 +82,12 @@ def test_simultaneous_direct_worlds_isolation():
     try:
         assert sim1.client != sim2.client, "Simulations must obtain distinct physics client IDs"
 
-        # Drive sim1 forward while sim2 stays commanded at rest
+        # Drive sim1 forward while sim2 stays commanded at rest; step both concurrently
         sim1.robot.set_command(0.3, 0.0)
         sim2.robot.set_command(0.0, 0.0)
         for _ in range(int(round(0.8 / DEFAULT.dt))):
             sim1.step()
+            sim2.step()
 
         x1, y1, _ = sim1.robot.pose()
         x2, y2, _ = sim2.robot.pose()
