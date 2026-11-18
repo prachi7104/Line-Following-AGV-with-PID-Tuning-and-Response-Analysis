@@ -10,16 +10,20 @@ Project P03 · Group G05 · Batch B3.
 
 ## Baseline provenance
 
-`main` starts from the verified implementation written by Prachi Agarwalla in a separate personal
-repository, frozen on 16 Nov 2026 at commit `3320f51`. It was imported here as a **source
-snapshot** of that commit: the files are carried over, but the personal repository's Git history
-is not. The code, gains, sensor geometry, experiments, CSVs, figures and documents are exactly as
-they were at `3320f51`; only this README was updated for the group repository.
+The baseline implementation was written by Prachi Agarwalla in a personal reference workspace
+and frozen on 16 Nov 2026 at commit `3320f51`. This repository's history does not contain that
+commit or the history behind it:
+
+- `278b866` (18 Nov 2026) starts `main` as a new root commit containing only this README.
+- `b158af1` (18 Nov 2026) adds the baseline as a **source snapshot** of `3320f51`. Every file
+  except this README is identical to that commit (Git blob IDs compared, 54 of 54 files). The
+  code, gains, sensor geometry, experiments, CSVs, figures and documents are exactly as they were
+  at `3320f51`. Only this README was rewritten for the group repository.
 
 Documents under `docs/` still describe the work as a personal implementation, because that is how
 they were written. Commit IDs they cite (for example `4bce3cb` and `e6578a5` in
-`docs/VERIFICATION.md` and the plan under `docs/superpowers/plans/`) refer to the personal repository's history and do not exist in this
-repository.
+`docs/VERIFICATION.md` and the plan under `docs/superpowers/plans/`) refer to the reference
+workspace's history and do not exist in this repository.
 
 ## Team and module allocation
 
@@ -29,7 +33,7 @@ once their pull request has been reviewed; until then the status says so.
 
 | Member | Assigned module | Branch | Status |
 |---|---|---|---|
-| Harsh Kumar | Robot design and simulation environment | `module/robot-simulation` | Assigned, no contribution merged yet |
+| Harsh Kumar | Robot design and simulation environment | `module/robot-simulation` | Pull request #1 open, under review; not merged |
 | Prachi Agarwalla (team lead) | Sensors and PID controller | `module/sensors-pid` | Assigned, no contribution merged yet |
 | Ishita Garg | Mathematical modelling and stability analysis | `module/control-analysis` | Assigned, no contribution merged yet |
 | Nitya Shukla | Experiments and performance analysis | `module/experiments-validation` | Assigned, no contribution merged yet |
