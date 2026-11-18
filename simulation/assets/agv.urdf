@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+<!--
+  Differential-drive AGV.
+  base_link frame = midpoint of the wheel axle, +x forward, +y left, +z up.
+  The robot is spawned with base_link at z = wheel_radius (0.035 m), so:
+    chassis box 0.22 x 0.14 x 0.04 m, centred 0.01 m above the axle -> bottom at z = 0.025 m
+      (above the sensor-ray start z = 0.012 m, as required by the config: chassis bottom >= 0.02 m)
+    wheels: radius 0.035 m (= SimConfig.wheel_radius) at y = +-0.08 m (= SimConfig.track_width / 2)
+    casters: spheres r = 0.0125 m at x = +-0.07 m.
+      front caster centre 0.0225 m below the axle -> touches the floor;
+      rear caster 0.5 mm higher -> anti-tip only (touches at ~0.007 rad nose-up pitch).
+  Load path: the base centre of mass sits 0.015 m ahead of the axle, so the robot rests on a
+  tripod (two wheels + front caster), level, with ~80 % of the weight on the driven wheels.
+  With both casters exactly on the floor the four-point support is statically indeterminate and
+  PyBullet put almost all the weight on the casters, so the wheels slipped.
+  simulation.robot.AGV maps PyBullet's base (centre-of-mass) frame back to this link frame,
+  loads the URDF with URDF_USE_INERTIA_FROM_FILE and URDF_USE_IMPLICIT_CYLINDER (exact wheel
+  radius instead of a convex-hull mesh), and checks wheel radius / wheel y against
+  common/config.py at load time - keep them in sync.
+-->
+<robot name="agv">
+  <material name="body"><color rgba="0.15 0.45 0.85 1"/></material>
+  <material name="tyre"><color rgba="0.1 0.1 0.1 1"/></material>
+  <material name="caster"><color rgba="0.7 0.7 0.7 1"/></material>
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0.015 0 0" rpy="0 0 0"/>
+      <mass value="1.5"/>
+      <inertia ixx="0.00265" ixy="0" ixz="0" iyy="0.00625" iyz="0" izz="0.0085"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.01" rpy="0 0 0"/>
+      <geometry><box size="0.22 0.14 0.04"/></geometry>
+      <material name="body"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.01" rpy="0 0 0"/>
+      <geometry><box size="0.22 0.14 0.04"/></geometry>
+    </collision>
+  </link>
+
+  <link name="left_wheel">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.1"/>
+      <inertia ixx="3.4e-5" ixy="0" ixz="0" iyy="6.125e-5" iyz="0" izz="3.4e-5"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0"/>
+      <geometry><cylinder radius="0.035" length="0.02"/></geometry>
+      <material name="tyre"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0"/>
+      <geometry><cylinder radius="0.035" length="0.02"/></geometry>
+    </collision>
+  </link>
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_wheel"/>
+    <origin xyz="0 0.08 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="right_wheel">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.1"/>
+      <inertia ixx="3.4e-5" ixy="0" ixz="0" iyy="6.125e-5" iyz="0" izz="3.4e-5"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0"/>
+      <geometry><cylinder radius="0.035" length="0.02"/></geometry>
+      <material name="tyre"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5707963 0 0"/>
+      <geometry><cylinder radius="0.035" length="0.02"/></geometry>
+    </collision>
+  </link>
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_wheel"/>
+    <origin xyz="0 -0.08 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="front_caster">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.02"/>
+      <inertia ixx="1.25e-6" ixy="0" ixz="0" iyy="1.25e-6" iyz="0" izz="1.25e-6"/>
+    </inertial>
+    <visual>
+      <geometry><sphere radius="0.0125"/></geometry>
+      <material name="caster"/>
+    </visual>
+    <collision>
+      <geometry><sphere radius="0.0125"/></geometry>
+    </collision>
+  </link>
+  <joint name="front_caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="front_caster"/>
+    <origin xyz="0.07 0 -0.0225" rpy="0 0 0"/>
+  </joint>
+
+  <link name="rear_caster">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.02"/>
+      <inertia ixx="1.25e-6" ixy="0" ixz="0" iyy="1.25e-6" iyz="0" izz="1.25e-6"/>
+    </inertial>
+    <visual>
+      <geometry><sphere radius="0.0125"/></geometry>
+      <material name="caster"/>
+    </visual>
+    <collision>
+      <geometry><sphere radius="0.0125"/></geometry>
+    </collision>
+  </link>
+  <joint name="rear_caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="rear_caster"/>
+    <origin xyz="-0.07 0 -0.022" rpy="0 0 0"/>
+  </joint>
+</robot>

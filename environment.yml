@@ -1,0 +1,15 @@
+name: agv
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pybullet=3.25
+  - numpy
+  # OpenBLAS instead of MKL: MKL's threading layer crashed every np.linalg call on Windows
+  - libblas=*=*openblas
+  - libcblas=*=*openblas
+  - liblapack=*=*openblas
+  - scipy
+  - pandas
+  - matplotlib
+  - pytest
