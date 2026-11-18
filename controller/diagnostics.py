@@ -7,7 +7,8 @@ Nothing here changes how the simulation runs. The functions only observe:
 * ``sensor_characteristic``: the static sensed-error vs true-error curve of the bar, with its
   quantisation step, dead band, detection limit and linear range.
 * ``step_with_diagnostics`` / ``trace_controller``: step a ``LineFollowController`` and report
-  its P, I and D terms, whether the output saturated and whether anti-windup froze the integral.
+  its P, I and D terms and four separate limit flags (candidate saturation, integral frozen,
+  final output over the limit, command at the limit); see ``StepDiagnostics``.
 * ``run_trial_with_diagnostics``: the same loop as ``experiments.run_experiments.run_trial``,
   with a diagnostic record per step. Its DataFrame is identical to ``run_trial``'s.
 * ``line_loss_events`` / ``summarize_run``: line-loss and reacquisition events and saturation in
@@ -107,40 +108,65 @@ def sensor_characteristic(cfg: SimConfig = DEFAULT, span: float = 0.12,
 
 @dataclass(frozen=True)
 class StepDiagnostics:
+    """One controller step. The four limit-related flags answer different questions:
+
+    * ``candidate_saturated``: |kp*e + kd*d_f + ki*(I + e*dt)| > limit. This is the test
+      ``PID.update`` makes *before* deciding whether to integrate.
+    * ``integral_frozen``: candidate saturated AND e has the same sign as that candidate output,
+      so conditional integration skipped this step (anti-windup acted).
+    * ``output_saturated``: the final |p + i + d| > limit, i.e. the clamp changed the output.
+    * ``at_limit``: the command actually sent has |u| == limit (within ``SAT_TOL``). This is
+      also true when the final output lands exactly on the limit without exceeding it.
+
+    They can differ on the same step. Example: PI with e = 0.15 m from reset. The candidate is
+    3.003 rad/s, so the integral is frozen; the final output is then exactly 20 * 0.15 = 3.0,
+    so it is at the limit but not over it (output_saturated is False).
+    """
     e_used: float            # error fed to the PID [m] (held value when the line is lost)
     line_detected: bool
     p_term: float            # kp * e
     i_term: float            # ki * integral (after this step's update)
     d_term: float            # kd * filtered derivative
-    unclamped: float         # p + i + d, before the +-omega_max clamp
+    candidate: float         # kp*e + kd*d_f + ki*(I_before + e*dt), checked before integrating
+    unclamped: float         # final p + i + d, before the +-limit clamp
     u: float                 # yaw-rate command actually returned, u = -clamp(unclamped)
-    saturated: bool          # |unclamped| > omega_max
-    integral_frozen: bool    # anti-windup skipped this step's integration
+    candidate_saturated: bool
+    integral_frozen: bool
+    output_saturated: bool
+    at_limit: bool
 
 
 def step_with_diagnostics(controller: LineFollowController, e_sensed: float | None) -> StepDiagnostics:
     """Call ``controller.step(e_sensed)`` once and describe what the PID did.
 
     The controller is stepped exactly as in the simulation; this function only reads its state
-    before and after, so the returned ``u`` is the same value ``controller.step`` returns.
+    before and after, so the returned ``u`` is the same value ``controller.step`` returns. The
+    candidate output is recomputed with the same expression, in the same order, as
+    ``PID.update``.
     """
     pid = controller.pid
     integral_before = pid.integral
     out = controller.step(e_sensed)
-    p_term = pid.kp * out.e_used
+    e = out.e_used
+    p_term = pid.kp * e
     i_term = pid.ki * pid.integral
     d_term = pid.kd * pid.d_filtered
+    candidate = (pid.kp * e + pid.kd * pid.d_filtered) + pid.ki * (integral_before + e * pid.dt)
+    candidate_saturated = abs(candidate) > pid.limit
     unclamped = p_term + i_term + d_term
     return StepDiagnostics(
-        e_used=out.e_used,
+        e_used=e,
         line_detected=out.line_detected,
         p_term=p_term,
         i_term=i_term,
         d_term=d_term,
+        candidate=candidate,
         unclamped=unclamped,
         u=out.u,
-        saturated=abs(unclamped) > pid.limit,
-        integral_frozen=out.e_used != 0.0 and pid.integral == integral_before,
+        candidate_saturated=candidate_saturated,
+        integral_frozen=candidate_saturated and e * candidate > 0.0,
+        output_saturated=abs(unclamped) > pid.limit,
+        at_limit=abs(out.u) >= pid.limit - SAT_TOL,
     )
 
 
@@ -231,7 +257,9 @@ class RunSummary:
     longest_loss_s: float
     first_detection_s: float | None   # None if the line was never seen
     max_abs_u: float
-    saturated_fraction: float         # share of steps with |u| at the omega_max limit
+    at_limit_fraction: float          # share of steps whose command |u| is at omega_max; the
+                                      # same definition as StepDiagnostics.at_limit. A logged
+                                      # run has only u, so this is all it can measure.
 
 
 def summarize_run(df: pd.DataFrame, cfg: SimConfig = DEFAULT) -> RunSummary:
@@ -247,7 +275,7 @@ def summarize_run(df: pd.DataFrame, cfg: SimConfig = DEFAULT) -> RunSummary:
         longest_loss_s=max((e.n_steps for e in events), default=0) * cfg.dt,
         first_detection_s=None if first is None else float(df["t"].iloc[first]),
         max_abs_u=float(u.max()) if len(df) else 0.0,
-        saturated_fraction=float(np.mean(u >= cfg.omega_max - SAT_TOL)) if len(df) else 0.0,
+        at_limit_fraction=float(np.mean(u >= cfg.omega_max - SAT_TOL)) if len(df) else 0.0,
     )
 
 
@@ -266,7 +294,7 @@ def main() -> None:
         s = summarize_run(read_run(path))
         print(f"{path.name:18s} steps={s.n_steps:5d} detected={s.detected_fraction:.3f} "
               f"loss_events={len(s.loss_events)} max|u|={s.max_abs_u:.3f} "
-              f"saturated={s.saturated_fraction:.3f}")
+              f"at_limit={s.at_limit_fraction:.3f}")
 
 
 if __name__ == "__main__":
