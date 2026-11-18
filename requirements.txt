@@ -1,0 +1,7 @@
+# Linux / macOS only: PyPI has no Windows wheels for pybullet. On Windows use environment.yml.
+pybullet==3.2.7
+numpy
+scipy
+pandas
+matplotlib
+pytest

@@ -1,0 +1,9 @@
+[project]
+name = "agv-pid-analysis"
+version = "0.1.0"
+description = "Line-following AGV in PyBullet: P/PI/PID comparison, response metrics and Bode analysis"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
