@@ -3,13 +3,19 @@
 Evidence that the published results are genuine simulation output, reproducible and checked. Each
 item says who ran it and on which commit. Final state: project frozen on 16 Nov 2026.
 
+**AI assistance disclosure.** Items marked *AI coding assistant* or *AI-assisted review* were
+done by AI tools in the project owner's sessions, not by people. The test runs and the two source
+reviews used Claude Code, an AI coding assistant, and each review ran as a separate AI review
+agent. The external review was run by the owner in ChatGPT, and the owner reported its findings. Items marked *project owner* were run by the owner on their
+own laptop.
+
 ## 1. Automated tests
 
 | When | Commit | Who | Command | Result |
 |---|---|---|---|---|
-| Final closeout | closeout commit (after `4bce3cb`) | Claude, project env | `python -m pytest -q -rs` | **107 passed, 0 skipped**, ~27 s |
+| Final closeout | closeout commit (after `4bce3cb`) | AI coding assistant, project env | `python -m pytest -q -rs` | **107 passed, 0 skipped**, ~27 s |
 | Before closeout | `4bce3cb` | Project owner, own laptop | `python -m pytest -q` | 75 passed in 16.48 s (owner-reported) |
-| Clean rebuild | `e6578a5` | Claude, fresh clone + fresh env (session log; not stored in the repo) | `pytest -q` | 74 passed |
+| Clean rebuild | `e6578a5` | AI coding assistant, fresh clone + fresh env (session log; not stored in the repo) | `pytest -q` | 74 passed |
 
 The closeout added 32 tests:
 
@@ -69,9 +75,9 @@ Tested dependency versions: `environment.lock.yml` and the table in `README.md`.
 
 | Review | Scope | Outcome |
 |---|---|---|
-| Independent source review (Claude subagent, `e6578a5`) | Sign chain, PID, metrics, model, fairness, every number in the docs | No code bugs. Fixed in `4bce3cb`: <br>• one substantive doc error, that PI/PID true error converges towards +d²/(2R), not 0; <br>• two claims narrowed: the model ranking now covers only rise time and overshoot, and a caveat says straight-track IAE does not rank the controllers; <br>• a latent curve-angle bug guarded. |
-| External review (ChatGPT, owner-run, owner-reported) | Published GitHub source; metrics recomputed from all six CSVs; closed-loop poles checked | Raised the closeout items: filtered-PID consistency in the Bode analysis, steady-state terminology, end-to-end test coverage, and the reproducibility record. |
-| Final independent review (Claude subagent, closeout) | Closeout diff | See section 5. |
+| AI-assisted source review (separate AI review agent, `e6578a5`) | Sign chain, PID, metrics, model, fairness, every number in the docs | No code bugs. Fixed in `4bce3cb`: <br>• one substantive doc error, that PI/PID true error converges towards +d²/(2R), not 0; <br>• two claims narrowed: the model ranking now covers only rise time and overshoot, and a caveat says straight-track IAE does not rank the controllers; <br>• a latent curve-angle bug guarded. |
+| External AI-assisted review (second AI tool, owner-run, owner-reported) | Published GitHub source; metrics recomputed from all six CSVs; closed-loop poles checked | Raised the closeout items: filtered-PID consistency in the Bode analysis, steady-state terminology, end-to-end test coverage, and the reproducibility record. |
+| Final AI-assisted review (separate AI review agent, closeout) | Closeout diff | See section 5. |
 
 ## 4. Owner-executed GUI demos (owner-reported, own laptop, `4bce3cb`)
 
@@ -84,7 +90,7 @@ Run with the project environment's Python, called directly:
 
 ## 5. Final review of the closeout changes
 
-An independent Claude subagent reviewed the uncommitted closeout diff on top of `4bce3cb`. It
+A separate AI review agent reviewed the uncommitted closeout diff on top of `4bce3cb`. It
 found **no blockers**, and verified:
 
 - the filtered model's equations and that they match `controller/pid.py`'s backward-Euler filter
