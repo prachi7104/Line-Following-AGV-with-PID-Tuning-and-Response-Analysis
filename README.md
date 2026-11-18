@@ -10,7 +10,7 @@ Project P03 · Group G05 · Batch B3.
 
 ## Baseline provenance
 
-The baseline implementation was written by Prachi Agarwalla in her personal reference workspace
+The baseline implementation was written by Prachi Agarwalla in a personal reference workspace
 and frozen on 16 Nov 2026 at commit `3320f51`. This repository's history does not contain that
 commit or the history behind it:
 
