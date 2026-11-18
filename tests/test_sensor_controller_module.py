@@ -10,8 +10,12 @@ What is new here:
   * the bar's static characteristic (3 mm step, 1.5 mm dead band, detection limit);
   * the diagnostics observe the controller without changing a single output value;
   * the derivative filter over many steps and anti-windup with the frozen project gains;
+  * the four limit flags (candidate saturation, integral frozen, output over the limit, command
+    at the limit) at their boundaries, including PI at e = 0.15 m;
   * line loss at the start of a run, the held error, saturation and reacquisition, in PyBullet;
-  * the published CSVs never lose the line and never saturate, as docs/RESULTS.md states.
+  * the published CSVs never lose the line and never reach the limit, as docs/RESULTS.md states;
+  * all six published scenarios: the instrumented loop equals the experiment runner, and its
+    CSV output reproduces the published file.
 """
 import math
 from pathlib import Path
@@ -21,8 +25,9 @@ import pybullet  # noqa: F401  (hard requirement: missing pybullet must fail, no
 import pytest
 
 from common.config import DEFAULT, GAINS
-from common.schema import read_run
+from common.schema import read_run, write_run
 from controller.diagnostics import (
+    SAT_TOL,
     ideal_line_readings,
     line_loss_events,
     readings_for_offset,
@@ -36,7 +41,7 @@ from controller.diagnostics import (
 from controller.pid import make_controller
 from controller.sensors import LineSensor, ray_endpoints
 from experiments.run_experiments import MODES, run_trial
-from simulation.track import StraightTrack
+from simulation.track import CurveTrack, StraightTrack
 from simulation.world import Simulation
 
 RUN_DIR = Path(__file__).resolve().parents[1] / "results" / "runs"
@@ -153,7 +158,10 @@ def test_term_decomposition(mode):
         assert d.unclamped == pytest.approx(d.p_term + d.i_term + d.d_term)
         clamp = max(-DEFAULT.omega_max, min(DEFAULT.omega_max, d.unclamped))
         assert d.u == pytest.approx(-clamp)
-        assert d.saturated == (abs(d.unclamped) > DEFAULT.omega_max)
+        assert d.output_saturated == (abs(d.unclamped) > DEFAULT.omega_max)
+        assert d.candidate_saturated == (abs(d.candidate) > DEFAULT.omega_max)
+        assert d.at_limit == (abs(d.u) >= DEFAULT.omega_max - SAT_TOL)
+        assert d.integral_frozen == (d.candidate_saturated and d.e_used * d.candidate > 0)
         if ki == 0.0:
             assert d.i_term == 0.0
         if kd == 0.0:
@@ -177,11 +185,76 @@ def test_derivative_filter_first_order_decay():
     assert ratio == pytest.approx(math.exp(-1), rel=0.05)
 
 
+@pytest.mark.parametrize("mode", MODES)
+def test_integral_frozen_flag_matches_pid_state(mode):
+    """integral_frozen is derived from the candidate; check it against what PID.update did."""
+    ctrl = make_controller(mode)
+    ctrl.reset(0.05)
+    seq = ERRORS + [0.15] * 5 + [0.2] * 5 + [-0.2] * 5 + [0.01] * 5
+    n_frozen = 0
+    for e in seq:
+        before = ctrl.pid.integral
+        d = step_with_diagnostics(ctrl, e)
+        if d.e_used != 0.0:
+            assert d.integral_frozen == (ctrl.pid.integral == before)
+        if d.integral_frozen:
+            assert ctrl.pid.integral == before
+            n_frozen += 1
+        else:
+            assert ctrl.pid.integral == before + d.e_used * DEFAULT.dt
+    assert n_frozen >= 10, "the sequence never exercised anti-windup"
+
+
+def test_boundary_p_output_exactly_at_limit():
+    """P, e = 0.15 m: kp*e = 3.0 exactly. At the limit, but nothing exceeds it."""
+    d = trace_controller("P", [0.15], e0=0.15)[0]
+    assert d.candidate == 3.0 and d.unclamped == 3.0
+    assert d.u == -DEFAULT.omega_max
+    assert d.at_limit
+    assert not d.output_saturated
+    assert not d.candidate_saturated and not d.integral_frozen
+
+
+def test_boundary_p_output_exceeding_limit():
+    """P, e = 0.2 m: kp*e = 4 rad/s. Over the limit, clamped to it."""
+    d = trace_controller("P", [0.2], e0=0.2)[0]
+    assert d.unclamped == pytest.approx(4.0)
+    assert d.output_saturated and d.candidate_saturated and d.at_limit
+    assert d.u == -DEFAULT.omega_max
+
+
+def test_boundary_pi_015_candidate_saturation_freezes_integral_then_recovers():
+    """PI (20, 5, 0), e = 0.15 m from reset.
+
+    Candidate = 3.0 + 5 * 0.15 * dt = 3.003 > 3, pushing further, so conditional integration
+    skips the step and the integral stays 0. The final output is then kp*e = 3.0 exactly:
+    at the limit but not over it. The flags differ on purpose.
+    """
+    kp, ki, _ = GAINS["PI"]
+    dt = DEFAULT.dt
+    ctrl = make_controller("PI")
+    ctrl.reset(0.15)
+    for _ in range(50):
+        d = step_with_diagnostics(ctrl, 0.15)
+        assert d.candidate == pytest.approx(kp * 0.15 + ki * 0.15 * dt, rel=1e-12)
+        assert d.candidate_saturated and d.integral_frozen
+        assert ctrl.pid.integral == 0.0 and d.i_term == 0.0
+        assert d.unclamped == 3.0 and not d.output_saturated
+        assert d.at_limit and d.u == -DEFAULT.omega_max
+
+    # recovery: e = 0.10 m gives candidate 2.002 < 3; integration resumes from 0 at once
+    r = step_with_diagnostics(ctrl, 0.10)
+    assert not (r.candidate_saturated or r.integral_frozen or r.output_saturated or r.at_limit)
+    assert ctrl.pid.integral == pytest.approx(0.10 * dt)
+    assert r.u == pytest.approx(-(kp * 0.10 + ki * 0.10 * dt))
+
+
 @pytest.mark.parametrize("mode", ["PI", "PID"])
 def test_antiwindup_freezes_integral_with_project_gains(mode):
     # kp * 0.2 = 4 rad/s > omega_max: saturated and pushing further on every step
     trace = trace_controller(mode, [0.2] * 200, e0=0.2)
-    assert all(d.saturated and d.integral_frozen for d in trace)
+    assert all(d.candidate_saturated and d.integral_frozen for d in trace)
+    assert all(d.output_saturated and d.at_limit for d in trace)
     assert all(d.i_term == 0.0 for d in trace)
     assert all(d.u == -DEFAULT.omega_max for d in trace)
     # once the error drops back, integration resumes at once: nothing was wound up
@@ -193,11 +266,13 @@ def test_antiwindup_freezes_integral_with_project_gains(mode):
     assert not back.integral_frozen
     assert back.i_term == pytest.approx(GAINS[mode][1] * 0.01 * DEFAULT.dt)
     if mode == "PI":
-        assert not back.saturated and back.u == pytest.approx(-back.unclamped)
+        assert not back.output_saturated and not back.at_limit
+        assert back.u == pytest.approx(-back.unclamped)
     else:
         # PID: the 0.2 -> 0.01 drop gives a large filtered-D kick that saturates the other way;
         # the output then opposes e, so conditional integration correctly keeps integrating
-        assert back.saturated and back.unclamped < 0 < back.u
+        assert back.candidate_saturated and not back.integral_frozen
+        assert back.output_saturated and back.at_limit and back.unclamped < 0 < back.u
 
 
 # ------------------------------------------------------------------ line loss and reacquisition
@@ -239,6 +314,9 @@ def test_line_lost_at_start_is_reacquired(mode, characteristic):
     assert (lost["u"] < 0).all()
     if mode != "P":
         assert any(d.integral_frozen for d in diags[:first.n_steps])
+    # the logged-run summary and the per-step flag use the same at-limit definition
+    assert s.at_limit_fraction == pytest.approx(np.mean([d.at_limit for d in diags]))
+    assert s.at_limit_fraction > 0.0
 
     # it finishes the track and settles inside the band, never leaving the +-limit
     assert np.all(np.abs(df["u"]) <= DEFAULT.omega_max + 1e-12)
@@ -261,5 +339,50 @@ def test_published_runs_never_lose_line_or_saturate(path):
     assert s.detected_fraction == 1.0
     assert s.loss_events == []
     assert s.first_detection_s == 0.0
-    assert s.saturated_fraction == 0.0
+    assert s.at_limit_fraction == 0.0
     assert s.max_abs_u < 1.1
+
+
+# ------------------------------------------------------------------ six-scenario equivalence
+
+SCENARIOS = [(kind, mode) for kind in ("straight", "curve") for mode in MODES]
+_EQUIV: dict = {}
+
+
+def _scenario(kind, mode):
+    """(run_trial DataFrame, instrumented DataFrame, diagnostics) for one published scenario."""
+    if (kind, mode) not in _EQUIV:
+        if kind == "straight":
+            track, offset = StraightTrack(DEFAULT.straight_length), DEFAULT.initial_offset
+        else:
+            track = CurveTrack(DEFAULT.curve_lead, DEFAULT.curve_radius, DEFAULT.curve_angle)
+            offset = 0.0
+        reference = run_trial(track, mode, DEFAULT, offset)
+        df, diags = run_trial_with_diagnostics(track, mode, DEFAULT, offset)
+        _EQUIV[(kind, mode)] = (reference, df, diags)
+    return _EQUIV[(kind, mode)]
+
+
+def _normalised_bytes(path):
+    return Path(path).read_bytes().replace(b"\r\n", b"\n")
+
+
+@pytest.mark.parametrize(("kind", "mode"), SCENARIOS, ids=[f"{k}-{m}" for k, m in SCENARIOS])
+def test_instrumented_run_equals_experiment_runner(kind, mode):
+    reference, df, diags = _scenario(kind, mode)
+    assert df.equals(reference)
+    assert [d.u for d in diags] == reference["u"].tolist()
+    # in the published scenarios nothing reaches the limit and anti-windup never acts
+    assert not any(d.at_limit or d.output_saturated or d.integral_frozen for d in diags)
+
+
+@pytest.mark.parametrize(("kind", "mode"), SCENARIOS, ids=[f"{k}-{m}" for k, m in SCENARIOS])
+def test_instrumented_run_reproduces_published_csv(kind, mode, tmp_path):
+    """Write the instrumented run with the project's CSV writer into a temporary directory and
+    compare it with the published file (line endings normalised). Exact reproduction is what
+    the locked reference environment gives; other PyBullet builds may differ in the last digits
+    (README, Limitations)."""
+    _, df, _ = _scenario(kind, mode)
+    out = tmp_path / f"{kind}_{mode}.csv"
+    write_run(out, df.to_dict("records"))
+    assert _normalised_bytes(out) == _normalised_bytes(RUN_DIR / f"{kind}_{mode}.csv")
