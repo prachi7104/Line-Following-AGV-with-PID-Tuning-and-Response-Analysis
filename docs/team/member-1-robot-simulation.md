@@ -29,7 +29,7 @@ No changes were made to `common/config.py`, frozen robot geometry ($W=0.16\text{
 
 ### 2.1 Physical Robot Configuration & Kinematics
 The AGV is modelled as a differential-drive mobile robot defined in `simulation/assets/agv.urdf` and wrapped by `simulation.robot.AGV`:
-- **Chassis & Mass Distribution:** Rectangular chassis ($0.22 \times 0.14 \times 0.04\text{ m}$) with total base mass $1.5\text{ kg}$. The centre of mass is offset $0.015\text{ m}$ forward of the wheel axle midpoint. This establishes a stable tripod load path across the two driven wheels and the front passive caster, ensuring $\approx 80\%$ of vehicle weight rests on the traction wheels to prevent slip.
+- **Chassis & Mass Distribution:** Rectangular chassis ($0.22 \times 0.14 \times 0.04\text{ m}$) with a `base_link` mass of $1.5\text{ kg}$. The total URDF robot mass is $1.74\text{ kg}$, including both wheels and both casters. The base-link centre of mass is offset $0.015\text{ m}$ forward of the wheel axle midpoint. This establishes a stable tripod load path across the two driven wheels and the front passive caster, ensuring $\approx 80\%$ of vehicle weight rests on the traction wheels to prevent slip.
 - **Support Points & Casters:** Two low-friction spherical casters ($r = 0.0125\text{ m}$) are placed at $x = \pm 0.07\text{ m}$ with zero friction. The front caster rests on the floor (centre $0.0225\text{ m}$ below the axle), while the rear caster is offset $0.5\text{ mm}$ higher as an anti-tip guard (engaging only at $\approx 0.007\text{ rad}$ nose-up pitch).
 - **Coordinate Frames:** The URDF `base_link` frame is anchored at the midpoint of the driven wheel axle ($+x$ forward, $+y$ left, $+z$ upward). PyBullet tracks the body's inertial centre-of-mass frame. `AGV.pose()` and `AGV.reset()` apply `invertTransform` and `multiplyTransforms` between the COM and axle midpoint so all lateral tracking errors and metrics remain referenced to the wheel axle center.
 - **Unicycle Kinematics & Motor Actuation:** For forward velocity $v$ and commanded yaw rate $u$ (positive turning left):
@@ -90,32 +90,31 @@ Implemented 5 distinct automated tests:
 
 ```bash
 python -m pytest -q -rs tests/test_robot_module.py
-# Result: 5 passed in 0.57s
+# Harsh's Linux run: 5 passed in 0.57s
 ```
 
 ### 4.2 Focused Simulation Tests
 ```bash
 python -m pytest -q -rs tests/test_sim.py tests/test_track.py tests/test_robot_module.py
-# Result: 24 passed in 1.10s (7 test_sim + 12 test_track + 5 test_robot_module, 0 skipped)
+# Harsh's Linux run: 24 passed in 1.10s (7 test_sim + 12 test_track + 5 test_robot_module, 0 skipped)
 ```
 
 ### 4.3 Baseline and Full Suite Verification
 - **Baseline Test Suite (Inherited 8 modules):**
   ```bash
   python -m pytest -q -rs tests/test_sim.py tests/test_track.py tests/test_integration.py tests/test_metrics.py tests/test_model.py tests/test_pid.py tests/test_schema.py tests/test_sensors.py
-  # Result: 107 passed in 15.84s (0 skipped, 0 failed)
+  # Harsh's Linux run: 107 passed in 15.84s (0 skipped, 0 failed)
   ```
 - **Baseline + Member 1 Module:**
   ```bash
   python -m pytest -q -rs tests/test_sim.py tests/test_track.py tests/test_integration.py tests/test_metrics.py tests/test_model.py tests/test_pid.py tests/test_schema.py tests/test_sensors.py tests/test_robot_module.py
-  # Result: 112 passed in 16.50s (0 skipped, 0 failed)
+  # Harsh's Linux run: 112 passed in 16.50s (0 skipped, 0 failed)
   ```
-- **Full Consolidated Suite on Latest `main` (185 total tests collected):**
-  - All 107 baseline tests, 26 Member 3 model-check tests, and 5 Member 1 simulation tests pass cleanly.
-  - On Linux with `pybullet==3.2.7`, 179 total tests pass; 6 tests in `test_sensor_controller_module.py` check byte-level CSV equality against Windows conda-forge PyBullet 3.25 outputs, where minor floating-point divergence occurs in the final decimal digits (as anticipated and documented in `README.md` Limitations and Member 2 record).
+- **Harsh’s integrated Linux run:** 185 tests collected, 179 passed and 6 exact CSV comparisons failed. The differences were in the final decimal digits between the Linux PyPI PyBullet 3.2.7 results and the published Windows conda-forge PyBullet 3.25 results. See [README limitations](../../README.md#limitations) and the [Member 2 record](member-2-sensors-pid.md).
+- **Integrated Windows reference run:** PR head `c91b642` on base `4d95505`. The headless runs passed all 5 Member 1 tests, all 24 focused simulation tests and all 185 tests in the full suite, with zero skipped and zero failed. All 6 published CSV reproduction cases also passed in a targeted run.
 
 ### 4.4 GUI Smoke Tests
-Executed in real-time visual mode on active X11 display:
+Harsh ran these GUI smoke tests in real time on an active Linux X11 display.
 1. **Straight Track with P-Controller:**
    ```bash
    python -m experiments.demo --track straight --controller P
@@ -130,21 +129,19 @@ Executed in real-time visual mode on active X11 display:
    ```
    - `mean_abs`: `0.0037 m` ($3.7\text{ mm}$)
    - `max_abs`: `0.0125 m` ($12.5\text{ mm}$)
-   - `steady_state`: `0.0020 m` ($2.0\text{ mm}$, demonstrating integral action eliminating steady-state offset vs P controller's $13.8\text{ mm}$)
+   - `steady_state`: `0.0020 m` ($2.0\text{ mm}$). Integral action reduced the measured curve offset compared with the P controller’s $13.8\text{ mm}$.
    - `iae`: `0.0291 m·s`
 
 ---
 
 ## 5. Limitations
 
-- **Platform-Dependent PyBullet Builds:** Minor floating-point divergence in the final decimal places occurs between Linux PyPI PyBullet (`3.2.7`) and Windows conda-forge PyBullet (`3.25`). This does not affect simulation stability, qualitative response, or control performance.
+- **Platform-Dependent PyBullet Builds:** Minor floating-point divergence in the final decimal places occurs between Linux PyPI PyBullet (`3.2.7`) and Windows conda-forge PyBullet (`3.25`, reported as `3.2.5` by Python). This does not affect simulation stability, qualitative response, or control performance.
 - **Rigid-Body Physics vs Physical Hardware:** The URDF simulation assumes ideal rigid bodies and tire-ground contact without flexible tire deformation, non-linear motor saturation below $5.0\text{ N}\cdot\text{m}$, or battery voltage droop.
 - **Sensor Ray Discretisation:** Sensed error resolution is limited to $3\text{ mm}$ increments due to the 10 sub-rays per sensor patch, introducing a small $\approx 1.5\text{ mm}$ dead-band around the line.
 
 ---
 
-## 6. Proposed Root README Contribution Row
+## 6. README contribution record
 
-```markdown
-| Harsh Kumar | Robot design and simulation environment | Added tests/test_robot_module.py (pure yaw dynamics, simultaneous multi-world stepping isolation, URDF geometry consistency checks) and technical report docs/team/member-1-robot-simulation.md | 24 focused / 5 new / 112 baseline+module tests passed (0 skipped); GUI smoke tests verified on straight (P) and curve (PID) |
-```
+See the [merged module contributions](../../README.md#merged-module-contributions) for the integration summary.
