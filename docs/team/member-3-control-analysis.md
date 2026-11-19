@@ -1,8 +1,10 @@
-# Member 3 — Mathematical Modelling and Stability Contribution Record
+# Member 3 — Mathematical Modelling and Stability Analysis
 
 - **Member:** Ishita Garg
-- **Assigned module:** Member 3 — Mathematical modelling and stability analysis
+- **GitHub:** Ishitagarg1602
+- **Module:** Member 3 — Mathematical modelling and stability analysis
 - **Branch:** `module/control-analysis`, based on `main` at `30831b7` (`30831b780a883ef9164016aaee03250288ae014f`)
+- **Pull request:** [#5](https://github.com/prachi7104/Line-Following-AGV-with-PID-Tuning-and-Response-Analysis/pull/5), head `4844349`, merged as `a1162ec`
 - **Group:** Project P03 · Group G05 · Batch B3 (CSAI4014)
 
 ## 1. Scope and authorship
@@ -19,7 +21,9 @@ This contribution adds an independent frequency-domain cross-check CLI, its test
 
 No existing source files, configuration (`common/config.py`), environment files (`environment.yml`, `environment.lock.yml`), baseline tests, `README.md`, or published files under `results/` were modified.
 
-## 2. Project architecture and module interfaces
+## 2. Technical overview
+
+### 2.1 Project architecture and module interfaces
 
 All modules share one frozen configuration (`common/config.py`, SI units: m, s, rad, rad/s) and one sign convention:
 
@@ -35,9 +39,7 @@ How Member 3 connects to the other three modules:
 2. **Member 2 (`controller/`):** Provides the five-sensor ray bar (`LineSensor`, 10 sub-rays per 30 mm sensor, 3 mm pitch, placed `d = 0.10 m` ahead of the axle) and discrete PID (`PID`, `LineFollowController`). Member 3 models the sensor geometry via `e_s = e + d·θ` and models `controller/pid.py`'s backward-Euler derivative filter (`α = dt/(τ_f + dt) = 1/13`) as `Kd·s/(τ_f·s + 1)`.
 3. **Member 4 (`experiments/`, `analysis/metrics.py`, `analysis/plot_results.py`):** Runs the six headless trials and logs `results/runs/*.csv` using `common/schema.py`. `analysis/bode_analysis.py` reads the published straight-track CSVs (`straight_{P,PI,PID}.csv`) to overlay linear-model `e(t)` against simulated ground-truth `e_true` in `results/figures/model_vs_sim.png`.
 
-## 3. Independent derivation and stability analysis
-
-### 3.1 Plant transfer function `G(s)`
+### 2.2 Plant transfer function `G(s)`
 
 Near a straight reference line along `+x`, let `e(t)` be the axle's signed lateral error (`e > 0` left of line) and `θ(t)` be the heading error (`θ > 0` pointing left of the line).
 
@@ -63,7 +65,7 @@ Near a straight reference line along `+x`, let `e(t)` be the axle's signed later
 
 The plant has a **double integrator** (`1/s²`, yaw rate → heading → lateral position) and a single **left-half-plane zero** at `s = -v/d = -3.0 rad/s` produced solely by the look-ahead distance `d`.
 
-### 3.2 Negative feedback, loop transfer function, and filtered vs ideal D
+### 2.3 Negative feedback, loop transfer function, and filtered vs ideal D
 
 With negative feedback `U(s) = -C(s) E_s(s)`, the open-loop transfer function is `L(s) = C(s)·G(s)` and closed-loop poles are the roots of `1 + L(s) = 0`, equivalently `den(L) + num(L) = 0`.
 
@@ -78,7 +80,7 @@ Rearranging gives `τ_f (d_f[k] - d_f[k-1])/dt + d_f[k] = (e[k] - e[k-1])/dt`, w
 - **Ideal D (`Kd·s`, theory reference only):**
   `C_ideal(s) = Kp + Ki/s + Kd·s`. Properness is lost (improper transfer function), high-frequency gain grows without bound, and in time-domain ODE integration `de_s/dt = v·θ + d·u` creates an algebraic loop solved as `u = -(Kp·e_s + Ki·z + Kd·v·θ) / (1 + Kd·d)`. It is kept strictly as a separately labelled reference.
 
-### 3.3 Margins, conditional stability, and `d = 0` behaviour
+### 2.4 Margins, conditional stability, and `d = 0` behaviour
 
 Key properties verified from `results/model_margins.md` and `analysis/model_check.py`:
 
@@ -94,7 +96,7 @@ Key properties verified from `results/model_margins.md` and `analysis/model_chec
   - **Filtered PID (`τ_f = 0.05 s`):** poles `-19.391, -0.254, -0.178 ± 2.463j` (`ζ = 0.072`, PM `+8.1°`, **stable** in the ideal linear model because `Kd·v` supplies a small positive damping term). Ideal PID is similarly weakly stable (`ζ = 0.071`, PM `+8.2°`).
   - **Scope warning:** `d = 0` PID stability holds *only* for this idealised linear model; with only `~8°` phase margin, unmodelled motor lag, sampling delay, or quantisation on nonlinear hardware or in PyBullet can easily destabilise it.
 
-### 3.4 What the Bode plot measures and why model vs simulation differ
+### 2.5 What the Bode plot measures and why model vs simulation differ
 
 `results/figures/bode.png` plots the magnitude `20·log10|L(jω)|` and unwrapped phase `∠L(jω)` of the **open-loop** linearised transfer function `L(s) = C(s)G(s)` at `d = 0.10 m`. It measures frequency-domain stability margins and crossover bandwidth of the linear approximation; it is not a direct measurement from PyBullet.
 
@@ -105,9 +107,9 @@ Where the PyBullet simulation (`results/figures/model_vs_sim.png` and `docs/RESU
 3. **Discrete-time sampling:** The simulation runs at `240 Hz` (`dt = 1/240 s`), introducing roughly half a sample of delay and a discrete backward-Euler filter rather than exact continuous time.
 4. **Nonlinearities and geometry:** Saturation (`|u| <= 3 rad/s`, anti-windup, though `max |u| ≈ 1.0 rad/s` on the nominal runs), large-angle `sin(θ)` nonlinearity, and curved-track chord geometry (`+d²/(2R) = +6.7 mm` look-ahead offset on the `R = 0.75 m` arc) are outside the straight-line linearisation.
 
-## 4. New verification tool and tests
+## 3. Implementation and tests
 
-### 4.1 `analysis/model_check.py`
+### 3.1 `analysis/model_check.py`
 
 A read-only diagnostic CLI (`python -m analysis.model_check`) that provides an independent frequency-domain cross-check rather than repeating known-pole lookups:
 
@@ -117,7 +119,7 @@ A read-only diagnostic CLI (`python -m analysis.model_check`) that provides an i
 - **Justified numerical tolerances:** `DEFAULT_RTOL = 1e-12`, `DEFAULT_ATOL = 1e-12` (IEEE-754 float64 evaluation of degree ≤ 4 rational functions agrees to `~1e-16`–`1e-14` relative, leaving safe rounding headroom while immediately catching any algebraic, sign, gain, or filter discrepancy), and `STABILITY_TOL = 1e-9` matching `analysis/lateral_model.py`.
 - **Stability cross-check and exit status:** Reports all closed-loop pole real parts, `max Re(p)`, and `"stable" / "marginal" / "unstable"` classification verified against `lateral_model.is_stable`. Exits `0` only if all cases pass; exits `1` on any discrepancy or stability mismatch.
 
-### 4.2 `tests/test_model_check.py` (26 tests)
+### 3.2 `tests/test_model_check.py` (26 tests)
 
 Written after reading `tests/test_model.py` so it complements rather than duplicates existing pole/time-response tests:
 
@@ -126,9 +128,9 @@ Written after reading `tests/test_model.py` so it complements rather than duplic
 3. **Stability classification (7 tests):** Parametrised classification of stable, marginal, and unstable pole sets plus exact classification of all 8 default cases (including `d = 0` P marginal, PI unstable, filtered & ideal PID stable).
 4. **Mismatch detection & CLI exit codes (6 tests):** Injects corrupted transfer functions (perturbed gain `1 + 1e-8`, dropped derivative filter on implemented PID, sign inversion, degenerate constant TF, zero denominator) to confirm failures are caught and `main()` returns exit code `1` on discrepancy and `0` on pass.
 
-## 5. Verification and reproduction steps
+## 4. Verification
 
-### 5.1 Environment
+### 4.1 Environment
 
 - **OS:** Windows 11 (`Windows-10-10.0.26300-SP0`)
 - **Environment:** conda-forge micromamba environment `agv`, created from `environment.yml` (`environment.lock.yml` left untouched):
@@ -140,7 +142,7 @@ Written after reading `tests/test_model.py` so it complements rather than duplic
   - Matplotlib `3.11.2`
   - pytest `9.2.0`
 
-### 5.2 Commands and recorded results
+### 4.2 Ishita's runs: commands and recorded results
 
 On Windows PowerShell (from the repository root, using `$py = "$HOME\micromamba\envs\agv\python.exe"`):
 
@@ -153,7 +155,7 @@ On Windows PowerShell (from the repository root, using `$py = "$HOME\micromamba\
 | Disposable-copy Bode & margins reproduction | `& $py -m analysis.bode_analysis` (run inside a disposable copy outside the repo) | `results/model_margins.md` text-identical after line-ending normalisation; `results/figures/bode.png` (`141904 B`) and `results/figures/model_vs_sim.png` (`116925 B`) byte-identical (0 differing pixels) |
 | Published CSV row-count check | Read-only check of `results/runs/*.csv` | Exact match to reference counts (excluding headers): straight P `3211`, PI `3212`, PID `3210`; curve P `2742`, PI `2714`, PID `2710` |
 
-### 5.3 Actual output of `python -m analysis.model_check`
+### 4.3 Actual output of `python -m analysis.model_check`
 
 ```text
 Linear-model independent frequency-domain cross-check
@@ -174,24 +176,27 @@ Tolerances: rtol=1.0e-12, atol=1.0e-12 (stability tol=1.0e-09)
 Summary: 8/8 cases passed | overall max |dL| = 2.27e-13, max rel err = 2.65e-16
 ```
 
-### 5.4 How to reproduce personally
+### 4.4 Reproduction
 
 1. Ensure you are on branch `module/control-analysis` in a clean clone.
 2. Create (or reuse) the `agv` environment from `environment.yml` (`micromamba create -f environment.yml`).
 3. Run `& $py -m analysis.model_check`, `& $py -m pytest -q -rs tests/test_model.py tests/test_model_check.py`, and `& $py -m pytest -q -rs`.
 4. To verify `analysis.bode_analysis` without touching tracked files under `results/`, copy the repository to a separate temporary folder, run `& $py -m analysis.bode_analysis` inside that copy, and compare `results/model_margins.md`, `results/figures/bode.png`, and `results/figures/model_vs_sim.png` against the committed baseline.
 
-## 6. Candid limitations
+### 4.5 Integration verification (team lead, locked Windows environment)
+
+After PR #5 merged, `main` at `a1162ec` was checked in the locked reference environment
+(`environment.lock.yml`: pandas `3.1.0`, pytest `9.1.1`). `python -m analysis.model_check` passed
+8/8 cases, and `python -m pytest -q -rs` gave 180 passed, 0 skipped. The final integrated results
+(225 passed, 6 of 6 runs reproduced) are in [docs/VERIFICATION.md](../VERIFICATION.md) §6.
+
+## 5. Limitations
 
 - **Verifies mathematical consistency, not physical fidelity.** `analysis/model_check.py` proves that `analysis.lateral_model.loop_tf` and `closed_loop_poles` agree with the derived continuous-time complex transfer functions `C(jω)·G(jω)`. It does not validate the PyBullet physics, motor lag, or sensor ray casting.
 - **Linear `d = 0` stability does not generalise to hardware.** Filtered PID is linearly stable at `d = 0` (`ζ = 0.072`, PM `8.1°`), which is far too fragile to hold under unmodelled wheel lag, 240 Hz sampling delay, or 3 mm sensor quantisation.
 - **Finite frequency grid.** The default cross-check samples 13 positive frequencies (avoiding the double pole at `ω = 0`). Because `L(s)` is a rational function of degree ≤ 4, 13 distinct points strongly overdetermine its coefficients, though custom `--freq` grids must remain strictly positive.
 - **Minor package drift vs `environment.lock.yml`.** Building fresh from `environment.yml` resolved `pandas 3.1.1` and `pytest 9.2.0` (vs `3.1.0` and `9.1.1` in `environment.lock.yml`), while `python 3.11.18`, `pybullet 3.25`, `numpy 2.4.6` (OpenBLAS `0.3.34`), `scipy 1.17.1`, and `matplotlib 3.11.2` matched identically. All 180 tests and all three regenerated Bode/margin outputs matched byte-for-byte.
 
-## 7. Proposed root README contribution row
+## 6. README entry
 
-For consolidation by the team lead into root `README.md` after PR review (root `README.md` was not edited on this branch):
-
-```markdown
-| Ishita Garg | Mathematical modelling and stability analysis | Added `analysis/model_check.py` (read-only independent `C(jω)·G(jω)` frequency-domain cross-check and pole-stability CLI for `d = 0.10 m` and `d = 0`, separating implemented filtered D from ideal-D theory reference), `tests/test_model_check.py` (26 tests), and [docs/team/member-3-control-analysis.md](docs/team/member-3-control-analysis.md) | `python -m analysis.model_check` (8/8 passed, max rel err `2.65e-16`), 40 focused / 180 full pytest passed (0 skipped); disposable-copy `analysis.bode_analysis` reproduced `model_margins.md`, `bode.png`, and `model_vs_sim.png` identically |
-```
+See [Merged module contributions](../../README.md#merged-module-contributions).

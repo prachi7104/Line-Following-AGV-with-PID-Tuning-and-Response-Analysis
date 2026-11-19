@@ -1,12 +1,13 @@
-# Member 2 — Sensors and PID Controller Contribution Record
+# Member 2 — Sensors and PID Controller
 
 - **Member:** Prachi Agarwalla (team lead)
-- **GitHub username:** prachi7104
-- **Assigned module:** Member 2 — Sensors and PID controller
+- **GitHub:** prachi7104
+- **Module:** Member 2 — Sensors and PID controller
 - **Branch:** `module/sensors-pid`, based on `main` at `b158af1`
+- **Pull request:** [#2](https://github.com/prachi7104/Line-Following-AGV-with-PID-Tuning-and-Response-Analysis/pull/2), head `2e72a80`, merged as `30831b7`
 - **Group:** Project P03 · Group G05 · Batch B3 (CSAI4014)
 
-## 1. Scope
+## 1. Scope and authorship
 
 The sensor bar (`controller/sensors.py`) and the controller (`controller/pid.py`) come from the
 baseline imported in `b158af1`. They are not part of this contribution, and nothing in them was
@@ -22,7 +23,7 @@ No changes were made to `common/config.py`, the sensor geometry, the robot, the 
 (P 20/0/0, PI 20/5/0, PID 20/5/2), the PID algorithm, the physics, the experiment runner, or
 any file under `results/`.
 
-## 2. What the module under test does
+## 2. Technical overview
 
 - **Five-sensor bar, ray casting.** Five sensors 30 mm apart, `d = 0.10 m` ahead of the axle.
   Each sensor casts 10 downward sub-rays across its 30 mm footprint, all in one
@@ -38,7 +39,9 @@ any file under `results/`.
 - **Line loss.** The controller holds the last valid error, or the reset value if the line has
   never been seen, and keeps steering with it.
 
-## 3. Diagnostics added (`controller/diagnostics.py`)
+## 3. Implementation and tests
+
+### 3.1 Diagnostics (`controller/diagnostics.py`)
 
 | Function | What it gives |
 |---|---|
@@ -48,7 +51,7 @@ any file under `results/`.
 | `run_trial_with_diagnostics(...)` | The `run_trial` loop with one diagnostic record per step. Its DataFrame is identical to `run_trial`'s |
 | `line_loss_events(detected)` / `summarize_run(df)` | Line-loss stretches and reacquisition, time of first detection, max \|u\| and `at_limit_fraction`, for any run in the `common.schema` format |
 
-### Limit flags
+### 3.2 Limit flags
 
 `PID.update` checks saturation twice: once on a candidate output to decide whether to
 integrate, and again when it clamps the final output. The diagnostics keep these apart:
@@ -73,7 +76,7 @@ but `output_saturated` is False.
 `python -m controller.diagnostics` prints the sensor characteristic and a summary of each
 published run. It only reads files.
 
-### Measured sensor characteristic (default configuration)
+### 3.3 Measured sensor characteristic (default configuration)
 
 | Quantity | Value | Where it comes from |
 |---|---|---|
@@ -82,7 +85,7 @@ published run. It only reads files.
 | Linear range | ±61.5 mm, error ≤ 1.5 mm inside it | the line stays fully under the outer sub-rays |
 | Detection limit | ±88.5 mm | outermost sub-ray (73.5 mm) + half the line width (15 mm) |
 
-## 4. Test scenarios (`tests/test_sensor_controller_module.py`, 47 tests)
+### 3.4 Tests (`tests/test_sensor_controller_module.py`, 47 tests)
 
 I read the existing coverage in `tests/test_sensors.py`, `tests/test_pid.py` and
 `tests/test_integration.py` first and did not repeat it. The new tests cover:
@@ -135,7 +138,9 @@ I read the existing coverage in `tests/test_sensors.py`, `tests/test_pid.py` and
       directory, is byte-identical to the published `results/runs/*.csv` once line endings are
       normalised. The published files are only read, never written.
 
-## 5. Verification
+## 4. Verification
+
+### 4.1 Results at merge
 
 Environment: Windows 11, micromamba env `agv`, the locked reference environment
 (`environment.lock.yml`): Python 3.11.18, PyBullet 3.25 from conda-forge (reports itself as
@@ -153,7 +158,13 @@ Environment: Windows 11, micromamba env `agv`, the locked reference environment
 The `results/` files on `main` were not regenerated or touched. The regeneration ran only in the
 disposable clone.
 
-## 6. Known limitations
+### 4.2 Integration verification (team lead, locked Windows environment)
+
+The member is also the team lead, so section 4.1 is already on the reference environment. The
+final integrated results (225 passed, 0 skipped, 0 failed; 6 of 6 runs reproduced) are in
+[docs/VERIFICATION.md](../VERIFICATION.md) §6.
+
+## 5. Limitations
 
 - The analytic sensor model assumes a straight line along the world x axis. It doesn't model
   arc curvature under the bar, and near a sub-ray/line-edge tie it can differ from PyBullet. The
@@ -173,8 +184,6 @@ disposable clone.
   is never lost mid-run, and no new tracks or disturbances were added to force it.
 - All results above were run on Windows with the conda-forge PyBullet build only.
 
-## 7. Proposed root README contribution row
+## 6. README entry
 
-```markdown
-| Prachi Agarwalla | Sensors and PID controller | Added controller/diagnostics.py (sensor transfer characteristic, PID term and limit-flag tracing, anti-windup detection, line-loss and reacquisition summaries), tests/test_sensor_controller_module.py (47 tests) and docs/team/member-2-sensors-pid.md | 47 new / 154 full tests passed (0 skipped); all six published scenarios reproduced exactly by the instrumented loop |
-```
+See [Merged module contributions](../../README.md#merged-module-contributions).
