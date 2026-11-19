@@ -3,6 +3,10 @@
 Evidence that the published results are genuine simulation output, reproducible and checked. Each
 item says who ran it and on which commit. Final state: project frozen on 16 Nov 2026.
 
+Sections 1 to 5 are the historical record of the personal baseline. Their commit IDs refer to
+the reference workspace's history (see the README's "Baseline provenance"). Section 6 records
+the group repository's final integration of all four member contributions (18–19 Nov 2026).
+
 **AI assistance disclosure.** Items marked *AI coding assistant* or *AI-assisted review* were
 done by AI tools in the project owner's sessions, not by people. The test runs and the two source
 reviews used Claude Code, an AI coding assistant, and each review ran as a separate AI review
@@ -109,3 +113,58 @@ Its two should-fix items and seven nits were all fixed before commit:
 - Labels for ideal and implemented D clarified in DESIGN.md and in the model-vs-sim figure title.
 - README wording on reproduction aligned with this file, and the Linux activate step added.
 - Two evidence claims in this file made precise.
+
+## 6. Final group integration (18–19 Nov 2026)
+
+The baseline was published to the group repository as `b158af1`, a source snapshot of
+`3320f51`. Each member then added one module through one pull request:
+
+| PR | Member | Merge commit | Adds |
+|---|---|---|---|
+| #1 | Harsh Kumar (robot and simulation) | `faf1dc4` | `tests/test_robot_module.py` (5 tests), member record |
+| #2 | Prachi Agarwalla (sensors and PID) | `30831b7` | `controller/diagnostics.py`, `tests/test_sensor_controller_module.py` (47 tests), member record |
+| #5 | Ishita Garg (modelling and stability) | `a1162ec` | `analysis/model_check.py`, `tests/test_model_check.py` (26 tests), member record |
+| #6 | Nitya Shukla (experiments and validation) | `0352cfd` | `experiments/verify_reproduction.py`, `tests/test_reproduction.py` (23), `tests/test_metrics_closed_form.py` (17), member record |
+
+Each member's own runs are in their record under `docs/team/`. The checks below are the team
+lead's, run in Claude Code, an AI coding assistant, in the team lead's session on the team lead's
+Windows 11 laptop. They used the locked reference environment (`environment.lock.yml`): micromamba
+env `agv`, Python 3.11.18, conda-forge PyBullet 3.25, numpy 2.4.6, scipy 1.17.1, pandas 3.1.0,
+matplotlib 3.11.2 and pytest 9.1.1.
+
+**Frozen implementation unchanged.** `git diff --name-status b158af1 0352cfd` lists no modified
+or deleted file under `common/`, `controller/`, `simulation/`, `experiments/`, `analysis/`,
+`results/`, `tests/` or the environment files. The integration only adds the files above.
+The only baseline file modified is this document: AI-disclosure wording before this section,
+and this section itself.
+
+**PR #6 before merging.** PR head `59774d7`, merged without committing onto `f16f580` in a
+temporary worktree: 40 focused tests passed, and the full suite gave 225 passed, 0 skipped,
+0 failed. The six runs were regenerated there, and `experiments.verify_reproduction` reported
+6 of 6.
+
+**Final integrated code, fresh clone.** A fresh clone from GitHub was checked out at merge commit
+`0352cfd`. Every later commit changes documentation only.
+
+| Check | Command | Result |
+|---|---|---|
+| Model check | `python -m analysis.model_check` | 8/8 cases passed; max rel. error 2.65e-16 |
+| Full suite | `python -m pytest -q -rs` | **225 passed, 0 skipped, 0 failed** |
+| Regenerate the six runs | `python -m experiments.run_experiments --experiment all` | six files written |
+| Reproduction | `python -m experiments.verify_reproduction <copy of published runs> results/runs` | **6 of 6 files reproduce** (exit 0) |
+| Working tree after regeneration | `git status --short` | empty: no published file changed |
+
+| File | Reproduced |
+|---|---|
+| `results/runs/straight_P.csv` | PASS |
+| `results/runs/straight_PI.csv` | PASS |
+| `results/runs/straight_PID.csv` | PASS |
+| `results/runs/curve_P.csv` | PASS |
+| `results/runs/curve_PI.csv` | PASS |
+| `results/runs/curve_PID.csv` | PASS |
+
+**Other platforms (member-reported).** Harsh (Linux, PyPI PyBullet 3.2.7) and Nitya (macOS arm64,
+conda-forge PyBullet 3.25) reported that the six byte-exact CSV tests fail in the last digits.
+Nitya confirmed that the same six fail on `main` without her contribution. Nitya's verifier reported 0 of 6
+there, while the metrics agreed to within 3.5 % and the conclusions were unchanged. The tests were
+kept strict.
