@@ -33,13 +33,24 @@ once their pull request has been reviewed; until then the status says so.
 
 | Member | Assigned module | Branch | Status |
 |---|---|---|---|
-| Harsh Kumar | Robot design and simulation environment | `module/robot-simulation` | Pull request #1 open, under review; not merged |
-| Prachi Agarwalla (team lead) | Sensors and PID controller | `module/sensors-pid` | Assigned, no contribution merged yet |
-| Ishita Garg | Mathematical modelling and stability analysis | `module/control-analysis` | Assigned, no contribution merged yet |
+| Harsh Kumar | Robot design and simulation environment | `module/robot-simulation` | Merged ([PR #1](https://github.com/prachi7104/Line-Following-AGV-with-PID-Tuning-and-Response-Analysis/pull/1)) |
+| Prachi Agarwalla (team lead) | Sensors and PID controller | `module/sensors-pid` | Merged ([PR #2](https://github.com/prachi7104/Line-Following-AGV-with-PID-Tuning-and-Response-Analysis/pull/2)) |
+| Ishita Garg | Mathematical modelling and stability analysis | `module/control-analysis` | Merged ([PR #5](https://github.com/prachi7104/Line-Following-AGV-with-PID-Tuning-and-Response-Analysis/pull/5)) |
 | Nitya Shukla | Experiments and performance analysis | `module/experiments-validation` | Assigned, no contribution merged yet |
 
 The inherited baseline (every file listed under Architecture) was written by Prachi Agarwalla
 and is not attributed to any module contribution.
+
+### Merged module contributions
+
+Each contribution adds new files only; no inherited code, parameter, gain or published result
+was changed.
+
+| Member | Pull request | Added | Verification |
+|---|---|---|---|
+| Harsh Kumar | [#1](https://github.com/prachi7104/Line-Following-AGV-with-PID-Tuning-and-Response-Analysis/pull/1) | `tests/test_robot_module.py` covers pure-yaw dynamics, simultaneous PyBullet world isolation and rejection of mismatched wheel geometry. [Record](docs/team/member-1-robot-simulation.md) | 5 Member 1 tests and 24 focused simulation tests passed. The integrated Windows suite passed all 185 tests with 0 skipped and 0 failed, including all 6 CSV reproduction cases. |
+| Prachi Agarwalla | [#2](https://github.com/prachi7104/Line-Following-AGV-with-PID-Tuning-and-Response-Analysis/pull/2) | `controller/diagnostics.py`: read-only sensor characteristic (3 mm step, ±1.5 mm dead band, ±88.5 mm detection limit), PID term and limit-flag tracing (candidate saturation, integral frozen, output over limit, command at limit), line-loss and reacquisition summaries. `tests/test_sensor_controller_module.py` (47 tests). [Record](docs/team/member-2-sensors-pid.md) | 47 new / 154 full tests passed, 0 skipped. All six published scenarios reproduced exactly by the instrumented loop |
+| Ishita Garg | [#5](https://github.com/prachi7104/Line-Following-AGV-with-PID-Tuning-and-Response-Analysis/pull/5) | `analysis/model_check.py`: independent `C(jω)·G(jω)` frequency-domain cross-check and closed-loop pole stability check for `d = 0.10 m` and `d = 0`, implemented filtered-D PID and ideal-D reference. `tests/test_model_check.py` (26 tests). [Record](docs/team/member-3-control-analysis.md) | `python -m analysis.model_check`: 8/8 cases passed, max rel. error 2.65e-16. 180 full tests passed, 0 skipped |
 
 ## Architecture
 
@@ -47,10 +58,10 @@ and is not attributed to any module contribution.
 |---|---|---|
 | `common/` | `config.py`, `schema.py` | All frozen parameters (`SimConfig`) and the CSV run schema |
 | `simulation/` | `track.py`, `robot.py`, `world.py`, `assets/agv.urdf` | Straight and curved tracks, line body, differential-drive AGV, PyBullet world at 240 Hz |
-| `controller/` | `sensors.py`, `pid.py` | Five-sensor ray-cast bar (10 sub-rays each), P/PI/PID with filtered D, anti-windup and output limits |
+| `controller/` | `sensors.py`, `pid.py`, `diagnostics.py` (PR #2) | Five-sensor ray-cast bar (10 sub-rays each), P/PI/PID with filtered D, anti-windup and output limits; read-only sensor and controller diagnostics |
 | `experiments/` | `run_experiments.py`, `demo.py` | The six headless runs (3 controllers × 2 tracks) and a live GUI demo |
-| `analysis/` | `metrics.py`, `plot_results.py`, `lateral_model.py`, `bode_analysis.py`, `dummy_data.py` | Response metrics, figures and summaries, linearised model, margins and Bode plot |
-| `tests/` | 8 test modules | Unit, model and end-to-end tests |
+| `analysis/` | `metrics.py`, `plot_results.py`, `lateral_model.py`, `bode_analysis.py`, `dummy_data.py`, `model_check.py` (PR #5) | Response metrics, figures and summaries, linearised model, margins and Bode plot; independent frequency-domain and pole check |
+| `tests/` | 11 test modules | Unit, model and end-to-end tests |
 | `results/` | `runs/*.csv`, `figures/*.png`, `summary_*.md`, `model_margins.md` | Published simulation output |
 
 Signal path each step: the sensor bar, `d = 0.10 m` ahead of the axle, reads five fractional
@@ -150,6 +161,7 @@ The suite covers the sensor model, the PID controller, the metrics, the linearis
 schema, the tracks, the simulation and all six end-to-end runs. PyBullet is a hard import in every
 simulation test, so a missing PyBullet fails the suite instead of skipping tests. Recorded result
 for the baseline: **107 passed, 0 skipped** ([docs/VERIFICATION.md](docs/VERIFICATION.md)).
+After merging PRs #1, #2 and #5 (5 + 47 + 26 new tests), the Windows reference suite reported **185 passed, 0 skipped, 0 failed**.
 
 ## Results
 
