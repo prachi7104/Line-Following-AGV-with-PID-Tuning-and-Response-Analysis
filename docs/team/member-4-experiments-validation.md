@@ -4,6 +4,12 @@
 - **Branch:** `module/experiments-validation`
 - **Status:** PARTIAL. My additions work and their tests pass. The published results are not reproduced bit for bit on my machine, and six baseline tests that require bit-exact reproduction fail on it (sections 5 and 6).
 
+> **Team lead's note (added at integration, 19 Nov 2026; not part of Nitya's own record).** Merged
+> in [PR #6](https://github.com/prachi7104/Line-Following-AGV-with-PID-Tuning-and-Response-Analysis/pull/6)
+> (merge commit `0352cfd`). On the locked Windows reference environment, all 225 tests pass and
+> the verifier reports 6 of 6 files reproduced. See section 9. Sections 1 to 8 are Nitya's
+> record, unchanged, and their PARTIAL status describes her macOS machine.
+
 ## 1. What this PR contains
 
 The group repository's `main` already holds the complete original project (published by the lead). My PR **adds three new code and test files plus this record, and changes no original file**:
@@ -111,3 +117,31 @@ The largest relative difference is 3.5 % (PID tail mean, about 0.07 mm). Every o
 | Member | Module | Newly authored files | Verification | Record |
 |---|---|---|---|---|
 | Nitya Shukla | Experiments and Validation | `experiments/verify_reproduction.py`, `tests/test_reproduction.py`, `tests/test_metrics_closed_form.py` | Focused tests 40 passed. Full suite 219 passed, 6 failed, 0 skipped; the same 6 baseline tests also fail on `main` alone on macOS. Regenerated results differ from the published ones in the last digits (PARTIAL) | `docs/team/member-4-experiments-validation.md`; PR link to be added once opened |
+
+## 9. Team lead's Windows verification at integration
+
+*Added by Prachi Agarwalla (team lead) when merging PR #6. Nitya did not run anything in this
+section, and nothing in sections 1 to 8 was changed. The team lead's checks ran in Claude Code,
+an AI coding assistant, in the team lead's session, on the team lead's Windows laptop.*
+
+- **What was tested:** PR head `59774d7` merged without committing onto `main` at `f16f580`,
+  in a temporary Git worktree. The merge had no conflicts and added exactly the four files in
+  section 1. No file under `common/`, `controller/`, `simulation/`, `analysis/`, `results/`,
+  `experiments/run_experiments.py` or the environment files changed.
+- **Environment:** the locked reference environment (`environment.lock.yml`) on Windows 11:
+  micromamba env `agv` with Python 3.11.18, conda-forge PyBullet 3.25 (build time Oct 21 2025),
+  numpy 2.4.6, scipy 1.17.1, pandas 3.1.0, matplotlib 3.11.2 and pytest 9.1.1.
+
+| Check | Command | Result |
+|---|---|---|
+| Member 4 focused tests | `python -m pytest -q -rs tests/test_metrics_closed_form.py tests/test_reproduction.py` | **40 passed**, 0 skipped |
+| Full suite | `python -m pytest -q -rs` | **225 passed, 0 skipped, 0 failed** (185 on `main` + 40 new) |
+| Regenerate the six runs | `python -m experiments.run_experiments --experiment all`, in the temporary worktree | six files written; `git diff` reports no content change in `results/` |
+| Verifier on the real files | `python -m experiments.verify_reproduction <copy of published results/runs> results/runs` | **6 of 6 files reproduce the baseline**, exit status 0 |
+
+The same verifier that reports 0 of 6 on macOS (section 5, item 7) reports 6 of 6 on the
+Windows conda-forge build that produced the published CSVs. This agrees with Nitya's explanation
+that the macOS differences come from the platform's PyBullet build, not from the code. The six
+byte-exact tests in `tests/test_sensor_controller_module.py` were kept strict: they pass on the
+reference environment, and the README documents that other PyBullet builds can differ in the
+last digits.
