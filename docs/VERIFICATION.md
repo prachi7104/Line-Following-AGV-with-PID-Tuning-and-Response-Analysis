@@ -7,11 +7,11 @@ Sections 1 to 5 are the historical record of the personal baseline. Their commit
 the reference workspace's history (see the README's "Baseline provenance"). Section 6 records
 the group repository's final integration of all four member contributions (18–19 Nov 2026).
 
-**AI assistance disclosure.** Items marked *AI coding assistant* or *AI-assisted review* were
-done by AI tools in the project owner's sessions, not by people. The test runs and the two source
-reviews used Claude Code, an AI coding assistant, and each review ran as a separate AI review
-agent. The external review was run by the owner in ChatGPT, and the owner reported its findings. Items marked *project owner* were run by the owner on their
-own laptop.
+**AI assistance.** Items marked *AI coding assistant* or *AI-assisted review* were done by AI
+tools in the project owner's sessions, not by people; each source review ran as a separate AI
+review agent. The external review was run by the owner with a second AI tool, and the owner
+reported its findings. Items marked *project owner* were run by the owner on their own laptop.
+The tools are named in the README's [AI-use disclosure](../README.md#ai-use-disclosure).
 
 ## 1. Automated tests
 
@@ -127,8 +127,8 @@ The baseline was published to the group repository as `b158af1`, a source snapsh
 | #6 | Nitya Shukla (experiments and validation) | `0352cfd` | `experiments/verify_reproduction.py`, `tests/test_reproduction.py` (23), `tests/test_metrics_closed_form.py` (17), member record |
 
 Each member's own runs are in their record under `docs/team/`. The checks below are the team
-lead's, run in Claude Code, an AI coding assistant, in the team lead's session on the team lead's
-Windows 11 laptop. They used the locked reference environment (`environment.lock.yml`): micromamba
+lead's, AI-assisted (see the README's [AI-use disclosure](../README.md#ai-use-disclosure)), on
+a Windows 11 laptop. They used the locked reference environment (`environment.lock.yml`): micromamba
 env `agv`, Python 3.11.18, conda-forge PyBullet 3.25, numpy 2.4.6, scipy 1.17.1, pandas 3.1.0,
 matplotlib 3.11.2 and pytest 9.1.1.
 
