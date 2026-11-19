@@ -26,7 +26,7 @@ I did not write any of the original modules (simulation, controller, experiments
 
 ## 3. Baseline and environment
 
-- Group `main` at the time of my final checks: `30831b7` ("Merge pull request #2 from prachi7104/module/sensors-pid"). The lead's baseline commit is `b158af1` ("publish complete verified AGV reference baseline"). I merged this `main` into my branch (merge commit `52aaf45`); the merge had no conflicts.
+- Group `main` at the time of my final checks: `f16f580`. The lead's baseline commit is `b158af1` ("publish complete verified AGV reference baseline"). `main` moved while I worked, so I merged it into my branch twice (merge commits `52aaf45` and `bdba38f`). Neither merge had conflicts. The test counts and the verifier result in section 5 were measured at `bdba38f`.
 - Reference ZIP `Line-Following-AGV-with-PID-Tuning-and-Response-Analysis-main.zip`, archive revision `3320f511c2486475f53a171167c5613792db8b0b`, SHA-256 `070cc3b77558f1a8ce2415d6f9440c4ee0adefbde0cace1686245b7ac9ceb9ad`, which matches the value in the team instructions. Some of my earlier comparisons used the published results from this ZIP and the latest ones used `results/runs` on `main`. Both gave the same first differences and row counts.
 - Environment: macOS 26.6.2, arm64 (Apple M4). micromamba environment from `micromamba create -f environment.yml`: Python 3.11.18, pybullet 3.25 (build time Oct 21 2025), numpy 2.4.6, pandas 3.1.1, matplotlib 3.11.2, scipy 1.17.1, pytest 9.2.0.
 
@@ -52,11 +52,11 @@ It reports the first differing row and column. It exits 0 when everything passes
 All commands were run on the machine in section 3.
 
 1. **Focused tests:** `python -m pytest -q -rs tests/test_reproduction.py tests/test_metrics_closed_form.py` gave **40 passed** (23 + 17).
-2. **Full suite on my branch** (`52aaf45`, merged with the latest `main`): `python -m pytest -q -rs` gave **188 passed, 6 failed, 0 skipped**.
-3. **The same suite on a clean clone of `main` alone** (`30831b7`, none of my files): **148 passed, 6 failed**. The same 6 tests fail without my PR. The difference between the two runs (188 against 148) is my 40 tests, all of which pass.
+2. **Full suite on my branch** (`bdba38f`, merged with `main` at `f16f580`): `python -m pytest -q -rs` gave **219 passed, 6 failed, 0 skipped**.
+3. **The same suite on a clean clone of `main` alone** (`f16f580`, none of my files): **179 passed, 6 failed**. The same 6 tests fail without my PR. The difference between the two runs (219 against 179) is my 40 tests, all of which pass.
 4. **The 6 failures** are `test_instrumented_run_reproduces_published_csv` for the six scenarios, in `tests/test_sensor_controller_module.py` (Member 2's file, merged with `main`). The test requires a regenerated CSV to match the published CSV byte for byte, and fails at the first differing digit. The project's README (Limitations) states that the published CSVs were produced on Windows with the conda-forge PyBullet build and that other PyBullet builds may differ in the last digits. `environment.lock.yml` is marked Windows-only. I did not modify the test; whether to relax or skip it on other platforms is the lead's decision.
-5. **Files changed by this PR:** before the merge, `git diff --name-status 5318422 HEAD` listed the three added test and tool files and no other file. After the merge, `git diff --name-status origin/main HEAD` lists the same three.
-6. **Regenerate the six runs** with the unmodified original code, in a temporary clone of my merged branch (`52aaf45`): `python -m experiments.run_experiments --experiment all`. I did the same earlier in a disposable copy of the reference ZIP, and the metric tables below come from `python -m analysis.plot_results` there.
+5. **Files changed by this PR:** before the merge, `git diff --name-status 5318422 HEAD` listed the three added test and tool files and no other file. After the latest merge, `git diff --name-status origin/main HEAD` lists four added files: those three and this record.
+6. **Regenerate the six runs** with the unmodified original code, in a temporary clone of my merged branch (`bdba38f`): `python -m experiments.run_experiments --experiment all`. I did the same earlier in a disposable copy of the reference ZIP, and the metric tables below come from `python -m analysis.plot_results` there.
 7. **Verifier on the real files:** `python -m experiments.verify_reproduction <published runs in my repo> results/runs` (run in the temporary clone) reported **0 of 6 files reproduce** and exited with status 1. The first difference is at row 2, column `x`, for example baseline 0.00018174108117818832 vs candidate 0.0001818174496293068 on the straight track. The three controllers on a track show the same first difference.
 
 | Run | Rows (regenerated) | Rows (published) |
@@ -84,7 +84,7 @@ All commands were run on the machine in section 3.
 
 The largest relative difference is 3.5 % (PID tail mean, about 0.07 mm). Every other value is within about 1.1 % (the next largest is PID max error). The P settling time differs by 9 ms, about two simulation steps. The conclusions are unchanged: PID settles fastest on the straight (2.458 s against 3.288 s for P), P keeps a steady offset of about -13.8 mm on the curve, and PI and PID cut the mean curve error to about a third of P's.
 
-8. **GUI runs** with the group's `experiments/demo.py`. Each run finished and printed:
+8. **GUI runs** with the group's `experiments/demo.py`. Each run, made on commit `e66ce46` before the later merges, finished and printed:
    - `--track straight --controller P`: rise time 0.6007, overshoot 24.5168, settling 3.2875, IAE 0.0540.
    - `--track straight --controller PID`: rise time 0.6663, overshoot 24.4842, settling 2.4583, IAE 0.0553.
    - `--track curve --controller PID`: mean abs 0.0037, max abs 0.0122, tail mean 0.0020, IAE 0.0290.
@@ -110,4 +110,4 @@ The largest relative difference is 3.5 % (PID tail mean, about 0.07 mm). Every o
 
 | Member | Module | Newly authored files | Verification | Record |
 |---|---|---|---|---|
-| Nitya Shukla | Experiments and Validation | `experiments/verify_reproduction.py`, `tests/test_reproduction.py`, `tests/test_metrics_closed_form.py` | Focused tests 40 passed. Full suite 188 passed, 6 failed, 0 skipped; the same 6 baseline tests also fail on `main` alone on macOS. Regenerated results differ from the published ones in the last digits (PARTIAL) | `docs/team/member-4-experiments-validation.md`; PR link to be added once opened |
+| Nitya Shukla | Experiments and Validation | `experiments/verify_reproduction.py`, `tests/test_reproduction.py`, `tests/test_metrics_closed_form.py` | Focused tests 40 passed. Full suite 219 passed, 6 failed, 0 skipped; the same 6 baseline tests also fail on `main` alone on macOS. Regenerated results differ from the published ones in the last digits (PARTIAL) | `docs/team/member-4-experiments-validation.md`; PR link to be added once opened |
