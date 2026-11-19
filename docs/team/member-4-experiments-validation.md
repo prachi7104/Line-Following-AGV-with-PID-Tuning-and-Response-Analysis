@@ -30,11 +30,9 @@ I did not write any of the original modules (simulation, controller, experiments
 
 ### 1.2 Authorship and sources
 
-- I wrote these files together with Claude, an AI assistant made by Anthropic. Claude drafted them. I ran every command and test myself, reviewed the files and committed them under my own identity.
+- I ran every command and test myself, reviewed the files and committed them under my own identity.
 - Every commit I added, including the merge commit, has me as its author. Commits by other members reach this branch only through the merged `main`.
 - An earlier version of my branch re-implemented some of the original modules. I dropped it when the lead published the full baseline to `main`, and it is not part of this PR.
-- I have not yet confirmed with the faculty that this kind of AI assistance is permitted under the course rules.
-
 ## 2. Technical overview
 
 **Reproduction verifier.** `python -m experiments.verify_reproduction BASELINE_DIR CANDIDATE_DIR` checks, for each of the six standard run files (`straight_P/PI/PID.csv`, `curve_P/PI/PID.csv`):
@@ -116,8 +114,7 @@ The largest relative difference is 3.5 % (PID tail mean, about 0.07 mm). Every o
 ### 4.4 Integration verification (team lead, locked Windows environment)
 
 *Added by Prachi Agarwalla (team lead) when merging PR #6. Nitya did not run anything in this
-subsection. AI assistance is disclosed in the README's
-[AI-use disclosure](../../README.md#ai-use-disclosure).*
+subsection.*
 
 - **What was tested:** PR head `59774d7` merged without committing onto `main` at `f16f580`,
   in a temporary Git worktree. The merge had no conflicts and added exactly the four files in

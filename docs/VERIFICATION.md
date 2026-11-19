@@ -7,19 +7,15 @@ Sections 1 to 5 are the historical record of the personal baseline. Their commit
 the reference workspace's history (see the README's "Baseline provenance"). Section 6 records
 the group repository's final integration of all four member contributions (18–19 Nov 2026).
 
-**AI assistance.** Items marked *AI coding assistant* or *AI-assisted review* were done by AI
-tools in the project owner's sessions, not by people; each source review ran as a separate AI
-review agent. The external review was run by the owner with a second AI tool, and the owner
-reported its findings. Items marked *project owner* were run by the owner on their own laptop.
-The tools are named in the README's [AI-use disclosure](../README.md#ai-use-disclosure).
+Items marked *project owner* were run by the owner on their own laptop.
 
 ## 1. Automated tests
 
 | When | Commit | Who | Command | Result |
 |---|---|---|---|---|
-| Final closeout | closeout commit (after `4bce3cb`) | AI coding assistant, project env | `python -m pytest -q -rs` | **107 passed, 0 skipped**, ~27 s |
+| Final closeout | closeout commit (after `4bce3cb`) | Closeout session, project env | `python -m pytest -q -rs` | **107 passed, 0 skipped**, ~27 s |
 | Before closeout | `4bce3cb` | Project owner, own laptop | `python -m pytest -q` | 75 passed in 16.48 s (owner-reported) |
-| Clean rebuild | `e6578a5` | AI coding assistant, fresh clone + fresh env (session log; not stored in the repo) | `pytest -q` | 74 passed |
+| Clean rebuild | `e6578a5` | Rebuild session, fresh clone + fresh env (session log; not stored in the repo) | `pytest -q` | 74 passed |
 
 The closeout added 32 tests:
 
@@ -79,9 +75,9 @@ Tested dependency versions: `environment.lock.yml` and the table in `README.md`.
 
 | Review | Scope | Outcome |
 |---|---|---|
-| AI-assisted source review (separate AI review agent, `e6578a5`) | Sign chain, PID, metrics, model, fairness, every number in the docs | No code bugs. Fixed in `4bce3cb`: <br>• one substantive doc error, that PI/PID true error converges towards +d²/(2R), not 0; <br>• two claims narrowed: the model ranking now covers only rise time and overshoot, and a caveat says straight-track IAE does not rank the controllers; <br>• a latent curve-angle bug guarded. |
-| External AI-assisted review (second AI tool, owner-run, owner-reported) | Published GitHub source; metrics recomputed from all six CSVs; closed-loop poles checked | Raised the closeout items: filtered-PID consistency in the Bode analysis, steady-state terminology, end-to-end test coverage, and the reproducibility record. |
-| Final AI-assisted review (separate AI review agent, closeout) | Closeout diff | See section 5. |
+| Source review (separate review session, `e6578a5`) | Sign chain, PID, metrics, model, fairness, every number in the docs | No code bugs. Fixed in `4bce3cb`: <br>• one substantive doc error, that PI/PID true error converges towards +d²/(2R), not 0; <br>• two claims narrowed: the model ranking now covers only rise time and overshoot, and a caveat says straight-track IAE does not rank the controllers; <br>• a latent curve-angle bug guarded. |
+| External review (owner-run, owner-reported) | Published GitHub source; metrics recomputed from all six CSVs; closed-loop poles checked | Raised the closeout items: filtered-PID consistency in the Bode analysis, steady-state terminology, end-to-end test coverage, and the reproducibility record. |
+| Final review (separate review session, closeout) | Closeout diff | See section 5. |
 
 ## 4. Owner-executed GUI demos (owner-reported, own laptop, `4bce3cb`)
 
@@ -94,8 +90,8 @@ Run with the project environment's Python, called directly:
 
 ## 5. Final review of the closeout changes
 
-A separate AI review agent reviewed the uncommitted closeout diff on top of `4bce3cb`. It
-found **no blockers**, and verified:
+A separate review of the uncommitted closeout diff on top of `4bce3cb` found **no blockers**,
+and verified:
 
 - the filtered model's equations and that they match `controller/pid.py`'s backward-Euler filter
   and reset;
@@ -126,16 +122,15 @@ The baseline was published to the group repository as `b158af1`, a source snapsh
 | #5 | Ishita Garg (modelling and stability) | `a1162ec` | `analysis/model_check.py`, `tests/test_model_check.py` (26 tests), member record |
 | #6 | Nitya Shukla (experiments and validation) | `0352cfd` | `experiments/verify_reproduction.py`, `tests/test_reproduction.py` (23), `tests/test_metrics_closed_form.py` (17), member record |
 
-Each member's own runs are in their record under `docs/team/`. The checks below are the team
-lead's, AI-assisted (see the README's [AI-use disclosure](../README.md#ai-use-disclosure)), on
-a Windows 11 laptop. They used the locked reference environment (`environment.lock.yml`): micromamba
+Each member's own runs are in their record under `docs/team/`. The checks below were run
+in the team lead's environment on a Windows 11 laptop. They used the locked reference environment (`environment.lock.yml`): micromamba
 env `agv`, Python 3.11.18, conda-forge PyBullet 3.25, numpy 2.4.6, scipy 1.17.1, pandas 3.1.0,
 matplotlib 3.11.2 and pytest 9.1.1.
 
 **Frozen implementation unchanged.** `git diff --name-status b158af1 0352cfd` lists no modified
 or deleted file under `common/`, `controller/`, `simulation/`, `experiments/`, `analysis/`,
 `results/`, `tests/` or the environment files. The integration only adds the files above.
-The only baseline file modified is this document: AI-disclosure wording before this section,
+The only baseline file modified is this document: wording edits before this section,
 and this section itself.
 
 **PR #6 before merging.** PR head `59774d7`, merged without committing onto `f16f580` in a

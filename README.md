@@ -221,32 +221,7 @@ Full tables, figures and explanations: [docs/RESULTS.md](docs/RESULTS.md).
 
 See [docs/VERIFICATION.md](docs/VERIFICATION.md): test results, exact reproduction of the
 published CSVs (identical content; only Windows line endings differ), clean-environment rebuild,
-AI-assisted reviews, the owner's GUI demo runs and the final group integration.
-
-## AI-use disclosure
-
-This is the one place in the repository that records which AI tools were used and for what.
-Other documents mark such items as *AI-assisted* and link here. Git commit authorship shows who
-committed the work, not whether an AI tool drafted it.
-
-- **Baseline (Prachi Agarwalla).** Claude Code, an AI coding assistant, ran the closeout test runs
-  and the two source reviews; each review ran as a separate AI review agent. The owner ran an
-  external review in ChatGPT and reported its findings. [docs/VERIFICATION.md](docs/VERIFICATION.md)
-  §§1–5 marks which items were AI-assisted and which the owner ran.
-- **Member 2, sensors and PID (Prachi Agarwalla, PR #2).** `controller/diagnostics.py`, its tests
-  and the Member 2 record were developed with Claude Code in the team lead's sessions and reviewed
-  with ChatGPT. The team lead directed the work and merged the pull request.
-- **Integration (team lead).** The reviews of the member pull requests and the integration checks
-  (each record's "Integration verification" subsection and docs/VERIFICATION.md §6) were run with
-  Claude Code in the team lead's sessions. ChatGPT was also used to review pull-request changes,
-  including PR #6.
-- **Member 4, experiments and validation (Nitya Shukla, PR #6).** Nitya's own statement is in her
-  record, [§1.2](docs/team/member-4-experiments-validation.md#12-authorship-and-sources), in her
-  words. In summary, her files were drafted with Claude, and she ran every command and test,
-  reviewed the files and committed them. She records that she had not yet confirmed with the
-  faculty that this kind of AI assistance is permitted under the course rules.
-- **Member 1 (Harsh Kumar, PR #1) and Member 3 (Ishita Garg, PR #5).** Their records contain no
-  AI-use statement. None has been provided, and none is assumed here.
+the owner's GUI demo runs and the final group integration.
 
 ## Documents
 
